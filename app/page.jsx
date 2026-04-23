@@ -1,139 +1,201 @@
-"use client";
+"use client"; 
 import React, { useEffect, useState } from 'react';
-import { Sunrise, Sunset, Droplets, Calendar, Clock, Sun, Cloud, CloudRain, CloudLightning, Snowflake, MapPin } from 'lucide-react';
+import { Sunrise, Sunset, Droplets, Calendar, Clock, Sun, Cloud, CloudRain, CloudLightning, Snowflake, MapPin, Map as MapIcon } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import {
-    Chart as ChartJS, CategoryScale, LinearScale, PointElement,
-    LineElement, Title, Tooltip, Filler, Legend
+  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
+  LineElement, Title, Tooltip, Filler, Legend
 } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler, Legend);
 
 const WeatherIcon = ({ code, className }) => {
-    if (code === 0) return <Sun className={className + " text-yellow-400"} />;
-    if (code >= 1 && code <= 3) return <Cloud className={className + " text-slate-400"} />;
-    if (code >= 51 && code <= 67) return <CloudRain className={className + " text-blue-400"} />;
-    if (code >= 71 && code <= 77) return <Snowflake className={className + " text-blue-200"} />;
-    if (code >= 95) return <CloudLightning className={className + " text-purple-400"} />;
-    return <CloudRain className={className + " text-blue-400"} />;
+  if (code === 0) return <Sun className={className + " text-yellow-400"} />;
+  if (code >= 1 && code <= 3) return <Cloud className={className + " text-slate-400"} />;
+  if (code >= 51 && code <= 67) return <CloudRain className={className + " text-blue-400"} />;
+  if (code >= 71 && code <= 77) return <Snowflake className={className + " text-blue-200"} />;
+  if (code >= 95) return <CloudLightning className={className + " text-purple-400"} />;
+  return <CloudRain className={className + " text-blue-400"} />;
 };
 
 export default function WeatherApp() {
-    const [weather, setWeather] = useState(null);
-    const [location] = useState({ name: "București", lat: 44.4323, lon: 26.1063 });
+  const [weather, setWeather] = useState(null);
+  const [location, setLocation] = useState({ name: "București", lat: 44.4323, lon: 26.1063 });
+  const [search, setSearch] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
 
-    useEffect(() => {
-        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&hourly=temperature_2m,weather_code&daily=weather_code,sunrise,sunset,precipitation_sum,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=10`)
+  useEffect(() => {
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&hourly=temperature_2m,weather_code&daily=weather_code,sunrise,sunset,precipitation_sum,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=10`)
+      .then(res => res.json())
+      .then(data => setWeather(data));
+  }, [location]);
+
+  useEffect(() => {
+    if (search.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${search}&count=5&language=ro&format=json`)
         .then(res => res.json())
-        .then(data => setWeather(data));
-    }, [location]);
+        .then(data => setSuggestions(data.results || []));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-    if (!weather) return <div className="min-h-screen bg-slate-950 text-blue-400 p-10 font-black italic">SE ÎNCARCĂ...</div>;
+  if (!weather || !weather.daily) return <div className="min-h-screen bg-slate-950 text-blue-400 p-10 font-black italic">SE ÎNCARCĂ...</div>;
 
-    const totalMm = weather.daily.precipitation_sum.reduce((a, b) => a + b, 0).toFixed(1);
+  const totalMm = weather.daily.precipitation_sum.reduce((a, b) => a + b, 0).toFixed(1);
 
-    const chartData = {
-        labels: weather.daily.time.map(d => new Date(d).toLocaleDateString('ro-RO', { weekday: 'short' })),
-        datasets: [{
-            label: 'Precipitații (mm)',
-            data: weather.daily.precipitation_sum,
-            fill: true,
-            backgroundColor: 'rgba(56, 189, 248, 0.1)',
-            borderColor: '#38bdf8',
-            tension: 0.4,
-            pointRadius: 5,
-            pointBackgroundColor: '#38bdf8',
-        }]
-    };
+  const chartData = {
+    labels: weather.daily.time.map(d => new Date(d).toLocaleDateString('ro-RO', { weekday: 'short' })),
+    datasets: [{
+      label: 'Precipitații (mm)',
+      data: weather.daily.precipitation_sum,
+      fill: true,
+      backgroundColor: 'rgba(56, 189, 248, 0.1)',
+      borderColor: '#38bdf8',
+      tension: 0.4,
+      pointRadius: 4,
+    }]
+  };
 
-    return (
-        <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10 font-sans">
-        <div className="max-w-4xl mx-auto flex flex-col gap-6">
-
-        {/* TITLU */}
-        <div className="flex items-center gap-3">
-        <MapPin className="text-blue-500 w-8 h-8 animate-bounce" />
-        <h1 className="text-4xl font-black italic uppercase tracking-tighter">PROGNOZĂ BUCUREȘTI</h1>
-        </div>
-
-        {/* CARD TEMP CURENTĂ - FORȚAT FULL WIDTH */}
-        <div className="w-full bg-slate-900 border-2 border-slate-800 p-8 rounded-[2rem] flex items-center justify-center gap-10 shadow-2xl">
-        <WeatherIcon code={weather.current_weather.weathercode} className="w-20 h-20" />
-        <div className="text-center">
-        <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.2em]">ACUM</p>
-        <p className="text-7xl font-black">{Math.round(weather.current_weather.temperature)}°</p>
-        </div>
-        </div>
-
-        {/* CARD PRECIPITAȚII TOTAL */}
-        <div className="w-full bg-blue-600/10 border-2 border-blue-500/20 p-8 rounded-[2rem] text-center">
-        <p className="text-blue-400 text-xs font-bold uppercase tracking-[0.2em] mb-2">PRECIPITAȚII (10 ZILE)</p>
-        <p className="text-6xl font-black tracking-tighter">{totalMm} <span className="text-xl font-light text-blue-300/50 italic uppercase">mm</span></p>
-        </div>
-
-        {/* GRAFIC PRECIPITAȚII - REPARAT PENTRU MOBIL */}
-        <div className="w-full bg-slate-900 border-2 border-slate-800 p-6 rounded-[2rem] shadow-xl overflow-hidden">
-        <div className="flex items-center gap-2 mb-6">
-        <Droplets className="w-5 h-5 text-blue-500" />
-        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest italic">Grafic Precipitații</h2>
-        </div>
-        <div className="h-64 w-full">
-        <Line
-        data={chartData}
-        options={{
-            maintainAspectRatio: false,
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { ticks: { color: '#475569', font: { weight: 'bold' } }, grid: { display: false } },
-                y: { ticks: { color: '#475569' }, grid: { color: '#1e293b' } }
-            }
-        }}
-        />
-        </div>
-        </div>
-
-        {/* RASARIT / APUS */}
-        <div className="grid grid-cols-2 gap-4">
-        <div className="bg-slate-900 border-2 border-slate-800 p-6 rounded-[2rem] text-center shadow-lg">
-        <Sunrise className="text-orange-500 w-8 h-8 mx-auto mb-2" />
-        <p className="text-slate-500 text-[10px] font-bold">RĂSĂRIT</p>
-        <p className="text-2xl font-black uppercase tracking-tighter">{weather.daily.sunrise[0].split('T')[1]}</p>
-        </div>
-        <div className="bg-slate-900 border-2 border-slate-800 p-6 rounded-[2rem] text-center shadow-lg">
-        <Sunset className="text-purple-500 w-8 h-8 mx-auto mb-2" />
-        <p className="text-slate-500 text-[10px] font-bold">APUS</p>
-        <p className="text-2xl font-black uppercase tracking-tighter">{weather.daily.sunset[0].split('T')[1]}</p>
-        </div>
-        </div>
-
-        {/* PROGNOZA ZILNICĂ */}
-        <div className="bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] overflow-hidden">
-        <div className="p-6 border-b-2 border-slate-800 bg-slate-800/30 font-black italic text-sm text-slate-400 uppercase tracking-widest">
-        Următoarele 10 zile
-        </div>
-        <div className="divide-y-2 divide-slate-800">
-        {weather.daily.time.map((date, i) => (
-            <div key={date} className="flex justify-between p-6 items-center hover:bg-slate-800/20 transition-colors">
-            <div className="flex items-center gap-4">
-            <WeatherIcon code={weather.daily.weather_code[i]} className="w-8 h-8" />
-            <span className="font-bold text-lg capitalize">{new Date(date).toLocaleDateString('ro-RO', { weekday: 'short', day: 'numeric' })}</span>
+  return (
+    <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-10 font-sans">
+      <div className="max-w-4xl mx-auto space-y-6 pb-20">
+        
+        {/* HEADER: TITLU + CAUTARE + TEMP CURENTA (ALINIERE DESKTOP) */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-4 flex-1 w-full">
+            <div className="flex items-center gap-2 text-blue-400">
+              <MapPin className="w-6 h-6 animate-pulse" />
+              <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">Prognoză {location.name}</h1>
             </div>
-            <div className="flex gap-6 items-center">
-            <div className="text-right">
-            <span className="text-white font-black text-xl">{Math.round(weather.daily.temperature_2m_max[i])}°</span>
-            <span className="text-slate-600 font-bold ml-2">{Math.round(weather.daily.temperature_2m_min[i])}°</span>
+            
+            {/* BARA DE CAUTARE */}
+            <div className="relative">
+              <input 
+                type="text"
+                placeholder="Caută alt oraș..."
+                className="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 w-full text-white focus:border-blue-500 outline-none shadow-lg"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl z-50 shadow-2xl overflow-hidden">
+                  {suggestions.map((city) => (
+                    <button 
+                      key={city.id}
+                      className="w-full text-left px-4 py-4 hover:bg-slate-800 text-white border-b border-slate-800 last:border-none flex justify-between items-center"
+                      onClick={() => {
+                        setLocation({ name: city.name, lat: city.latitude, lon: city.longitude });
+                        setSearch("");
+                        setSuggestions([]);
+                      }}
+                    >
+                      <span className="font-bold">{city.name}</span>
+                      <span className="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-400 uppercase tracking-widest">{city.country}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <span className="text-blue-500 font-black text-xs bg-blue-500/10 px-4 py-2 rounded-xl border-2 border-blue-500/10 min-w-[75px] text-center">
-            {weather.daily.precipitation_sum[i]} mm
-            </span>
+          </div>
+
+          {/* CARD TEMPERATURA (STILUL ORIGINAL COMPACT) */}
+          <div className="w-full md:w-64 bg-slate-900 border border-slate-800 p-6 rounded-3xl flex items-center justify-center md:justify-start gap-6 shadow-xl">
+            <WeatherIcon code={weather.current_weather.weathercode} className="w-16 h-16" />
+            <div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Acum</p>
+              <p className="text-5xl font-black text-white">{Math.round(weather.current_weather.temperature)}°</p>
             </div>
-            </div>
-        ))}
-        </div>
+          </div>
+        </header>
+
+        {/* CARD PRECIPITATII TOTAL */}
+        <div className="bg-blue-600/10 border border-blue-500/30 p-8 rounded-3xl text-center shadow-lg">
+            <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">Precipitații Total (10 zile)</p>
+            <p className="text-5xl font-black text-white">{totalMm} <span className="text-lg font-normal text-blue-300">mm</span></p>
         </div>
 
+        {/* GRAFIC PRECIPITATII (VIZIBIL PE MOBIL SI DESKTOP) */}
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+          <h2 className="text-xs font-bold mb-6 flex items-center gap-2 text-slate-400 uppercase tracking-widest">
+            <Droplets className="w-4 h-4 text-blue-400" /> Grafic Precipitații (mm)
+          </h2>
+          <div className="h-64 w-full">
+            <Line 
+              data={chartData} 
+              options={{ 
+                maintainAspectRatio: false, 
+                responsive: true,
+                plugins: { legend: { display: false }}, 
+                scales: { 
+                  x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } }, 
+                  y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } } 
+                } 
+              }} 
+            />
+          </div>
         </div>
-        </main>
-    );
+
+        {/* RASARIT SI APUS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex items-center gap-4">
+            <Sunrise className="text-orange-500 w-8 h-8" />
+            <div>
+              <p className="text-slate-500 text-[10px] uppercase font-bold italic tracking-wider">Răsărit</p>
+              <p className="text-2xl font-black text-white">{weather.daily.sunrise[0].split('T')[1]}</p>
+            </div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex items-center gap-4">
+            <Sunset className="text-purple-500 w-8 h-8" />
+            <div>
+              <p className="text-slate-500 text-[10px] uppercase font-bold italic tracking-wider">Apus</p>
+              <p className="text-2xl font-black text-white">{weather.daily.sunset[0].split('T')[1]}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* PROGNOZA 10 ZILE */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+          <div className="p-4 border-b border-slate-800 bg-slate-800/20 text-xs font-bold text-slate-400 uppercase tracking-widest">Prognoză 10 zile</div>
+          <div className="divide-y divide-slate-800">
+            {weather.daily.time.map((date, i) => (
+              <div key={date} className="flex justify-between p-4 items-center">
+                <div className="flex items-center gap-4">
+                  <WeatherIcon code={weather.daily.weather_code[i]} className="w-6 h-6" />
+                  <span className="text-slate-200 font-medium text-sm capitalize font-mono">
+                    {new Date(date).toLocaleDateString('ro-RO', { weekday: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-white font-bold">{Math.round(weather.daily.temperature_2m_max[i])}°</span>
+                  <span className="text-blue-400 font-bold text-xs bg-blue-400/10 px-3 py-1 rounded-lg border border-blue-400/20">{weather.daily.precipitation_sum[i]} mm</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RADAR LIVE (REVENIT) */}
+        <section className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+          <div className="p-4 border-b border-slate-800 flex items-center gap-2 bg-slate-800/20">
+             <MapIcon className="w-4 h-4 text-blue-400" />
+             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Harta Radar Live</h2>
+          </div>
+          <div className="h-[450px] w-full bg-slate-800">
+            <iframe
+              title="Radar"
+              width="100%"
+              height="100%"
+              src={`https://embed.windy.com/embed2.html?lat=${location.lat}&lon=${location.lon}&zoom=6&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`}
+              frameBorder="0"
+            ></iframe>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  );
 }
