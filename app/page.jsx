@@ -57,7 +57,7 @@ export default function WeatherApp() {
   const totalMm = weather.daily.precipitation_sum.reduce((a, b) => a + b, 0).toFixed(1);
 
   const chartData = {
-    labels: weather.daily.time,
+    labels: weather.daily.time.map(d => new Date(d).toLocaleDateString('ro-RO', { weekday: 'short' })),
     datasets: [{
       label: 'Precipitații (mm)',
       data: weather.daily.precipitation_sum,
@@ -65,6 +65,7 @@ export default function WeatherApp() {
       backgroundColor: 'rgba(56, 189, 248, 0.1)',
       borderColor: '#38bdf8',
       tension: 0.4,
+      pointRadius: 4,
     }]
   };
 
@@ -72,9 +73,9 @@ export default function WeatherApp() {
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-10 font-sans">
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
 
-    {/* HEADER: TITLU + CAUTARE + TEMPERATURA */}
-    <header className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-6">
-    <div className="space-y-4 flex-1">
+    {/* HEADER: Titlu + Căutare + Temp Curentă */}
+    <header className="flex flex-col md:flex-row justify-between items-stretch gap-6">
+    <div className="space-y-4 flex-[2]">
     <div className="flex items-center gap-2 text-blue-400">
     <MapPin className="w-6 h-6 animate-pulse" />
     <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">Prognoză {location.name}</h1>
@@ -84,16 +85,16 @@ export default function WeatherApp() {
     <input
     type="text"
     placeholder="Caută alt oraș..."
-    className="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 w-full text-white focus:border-blue-500 outline-none shadow-lg"
+    className="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 w-full text-white focus:border-blue-500 outline-none shadow-lg"
     value={search}
     onChange={(e) => setSearch(e.target.value)}
     />
     {suggestions.length > 0 && (
-      <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl z-50 shadow-2xl overflow-hidden">
+      <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl z-50 shadow-2xl">
       {suggestions.map((city) => (
         <button
         key={city.id}
-        className="w-full text-left px-4 py-4 hover:bg-slate-800 text-white border-b border-slate-800 last:border-none flex justify-between items-center"
+        className="w-full text-left px-4 py-4 hover:bg-slate-800 text-white border-b border-slate-800 last:border-none flex justify-between"
         onClick={() => {
           setLocation({ name: city.name, lat: city.latitude, lon: city.longitude });
           setSearch("");
@@ -109,8 +110,8 @@ export default function WeatherApp() {
     </div>
     </div>
 
-    {/* CARD VREMEA CURENTA - ACUM OCUPA FULL WIDTH PE MOBIL */}
-    <div className="w-full md:w-64 bg-slate-900 border border-slate-800 p-6 rounded-3xl flex items-center justify-center md:justify-start gap-6 shadow-xl">
+    {/* CARD TEMP CURENTĂ - Uniformizat pe mobil */}
+    <div className="flex-1 bg-slate-900 border border-slate-800 p-6 rounded-3xl flex items-center justify-center md:justify-start gap-6 shadow-xl">
     <WeatherIcon code={weather.current_weather.weathercode} className="w-16 h-16" />
     <div>
     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Acum</p>
@@ -119,49 +120,46 @@ export default function WeatherApp() {
     </div>
     </header>
 
-    {/* CARD PRECIPITATII 10 ZILE */}
+    {/* CARD PRECIPITAȚII 10 ZILE */}
     <div className="bg-blue-600/10 border border-blue-500/30 p-8 rounded-3xl text-center shadow-lg">
     <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">Precipitații Total (10 zile)</p>
     <p className="text-5xl font-black text-white">{totalMm} <span className="text-lg font-normal text-blue-300">mm</span></p>
     </div>
 
+    {/* GRAFIC PRECIPITAȚII - Forțat să apară peste tot */}
+    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+    <h2 className="text-xs font-bold mb-6 flex items-center gap-2 text-slate-400 uppercase tracking-widest"><Droplets className="w-4 h-4 text-blue-400" /> Grafic Precipitații</h2>
+    <div className="h-64 w-full">
+    <Line
+    data={chartData}
+    options={{
+      maintainAspectRatio: false,
+      responsive: true,
+      plugins: { legend: { display: false }},
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+        y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } }
+      }
+    }}
+    />
+    </div>
+    </div>
+
     {/* RASARIT SI APUS */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl flex items-center gap-4 shadow-md">
-    <Sunrise className="text-orange-500 w-6 h-6" />
+    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex items-center gap-4">
+    <Sunrise className="text-orange-500 w-8 h-8" />
     <div>
     <p className="text-slate-500 text-[10px] uppercase font-bold italic tracking-wider">Răsărit</p>
-    <p className="text-xl font-semibold text-white">{weather.daily.sunrise[0].split('T')[1]}</p>
+    <p className="text-2xl font-black text-white">{weather.daily.sunrise[0].split('T')[1]}</p>
     </div>
     </div>
-    <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl flex items-center gap-4 shadow-md">
-    <Sunset className="text-purple-500 w-6 h-6" />
+    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex items-center gap-4">
+    <Sunset className="text-purple-500 w-8 h-8" />
     <div>
     <p className="text-slate-500 text-[10px] uppercase font-bold italic tracking-wider">Apus</p>
-    <p className="text-xl font-semibold text-white">{weather.daily.sunset[0].split('T')[1]}</p>
+    <p className="text-2xl font-black text-white">{weather.daily.sunset[0].split('T')[1]}</p>
     </div>
-    </div>
-    </div>
-
-    {/* EVOLUTIE PE ORE */}
-    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl overflow-hidden shadow-xl">
-    <h2 className="text-xs font-bold mb-4 flex items-center gap-2 text-slate-400 uppercase tracking-widest"><Clock className="w-4 h-4" /> Evoluție 24 ore</h2>
-    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-    {weather.hourly.time.slice(0, 24).map((time, i) => (
-      <div key={time} className="flex-shrink-0 bg-slate-800/30 p-4 rounded-2xl text-center min-w-[85px] border border-slate-700/50">
-      <p className="text-slate-400 text-[10px] mb-2 italic font-mono">{new Date(time).getHours()}:00</p>
-      <WeatherIcon code={weather.hourly.weather_code[i]} className="w-6 h-6 mx-auto mb-3" />
-      <p className="text-xl font-bold text-white">{Math.round(weather.hourly.temperature_2m[i])}°</p>
-      </div>
-    ))}
-    </div>
-    </div>
-
-    {/* GRAFIC PRECIPITATII */}
-    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-    <h2 className="text-xs font-bold mb-6 flex items-center gap-2 text-slate-400 uppercase tracking-widest"><Droplets className="w-4 h-4 text-blue-400" /> Evoluție Precipitații (mm)</h2>
-    <div className="h-60">
-    <Line data={chartData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false }}, scales: { x: { grid: { display: false }, ticks: { color: '#475569'} }, y: { grid: { color: '#1e293b' }, ticks: { color: '#475569'} } } }} />
     </div>
     </div>
 
@@ -172,10 +170,10 @@ export default function WeatherApp() {
     </div>
     <div className="divide-y divide-slate-800">
     {weather.daily.time.map((date, i) => (
-      <div key={date} className="flex justify-between p-4 items-center hover:bg-slate-800/40 transition-colors">
+      <div key={date} className="flex justify-between p-4 items-center hover:bg-slate-800/40">
       <div className="flex items-center gap-4 min-w-[140px]">
       <WeatherIcon code={weather.daily.weather_code[i]} className="w-6 h-6" />
-      <span className="text-slate-200 font-medium text-sm capitalize font-mono">
+      <span className="text-slate-200 font-medium text-sm capitalize">
       {new Date(date).toLocaleDateString('ro-RO', { weekday: 'short', day: 'numeric' })}
       </span>
       </div>
@@ -184,7 +182,7 @@ export default function WeatherApp() {
       <span className="text-white font-bold">{Math.round(weather.daily.temperature_2m_max[i])}°</span>
       <span className="text-slate-500">{Math.round(weather.daily.temperature_2m_min[i])}°</span>
       </div>
-      <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-3 py-1 rounded-lg border border-blue-400/20 w-[65px] text-center">
+      <span className="text-blue-400 font-bold text-xs bg-blue-400/10 px-3 py-1 rounded-lg border border-blue-400/20 w-[65px] text-center">
       {weather.daily.precipitation_sum[i]} mm
       </span>
       </div>
@@ -193,21 +191,15 @@ export default function WeatherApp() {
     </div>
     </div>
 
-    {/* RADAR LIVE */}
-    <section className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-    <div className="p-4 border-b border-slate-800 flex items-center gap-2 bg-slate-800/20">
-    <MapIcon className="w-4 h-4 text-blue-400" />
-    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Harta Radar Live</h2>
-    </div>
-    <div className="h-[450px] w-full bg-slate-800">
+    {/* RADAR */}
+    <section className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden h-[500px]">
     <iframe
     title="Radar"
     width="100%"
     height="100%"
-    src={`https://embed.windy.com/embed2.html?lat=${location.lat}&lon=${location.lon}&zoom=6&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`}
+    src={`https://embed.windy.com/embed2.html?lat=${location.lat}&lon=${location.lon}&zoom=6&overlay=rain&product=ecmwf&message=true&metricTemp=%C2%B0C&radarRange=-1`}
     frameBorder="0"
     ></iframe>
-    </div>
     </section>
 
     </div>
