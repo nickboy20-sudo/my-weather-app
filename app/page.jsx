@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { Sunrise, Sunset, Droplets, Calendar, Clock, Sun, Cloud, CloudRain, CloudLightning, Snowflake, MapPin, Search, Map as MapIcon, Thermometer } from 'lucide-react';
+import { Sunrise, Sunset, Droplets, Calendar, Clock, Sun, Cloud, CloudRain, CloudLightning, Snowflake, MapPin, Search, Map as MapIcon } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement,
@@ -9,6 +9,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler, Legend);
 
+// Componenta pentru Iconițe (Curățată de TypeScript)
 const WeatherIcon = ({ code, className }) => {
   if (code === 0) return <Sun className={`${className} text-yellow-400`} />;
   if (code >= 1 && code <= 3) return <Cloud className={`${className} text-slate-400`} />;
@@ -50,9 +51,28 @@ export default function WeatherApp() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  if (!weather) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-blue-400 font-mono">Se încarcă...</div>;
+  // Verificare de siguranță pentru date
+  if (!weather || !weather.daily) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-blue-400 font-mono italic">
+      Se încarcă prognoza pentru {location.name}...
+      </div>
+    );
+  }
 
-  const totalMm = weather?.daily?.precipitation_sum?.reduce((a, b) => a + b, 0).toFixed(1);
+  const totalMm = weather.daily.precipitation_sum?.reduce((a, b) => a + b, 0).toFixed(1);
+
+  const chartData = {
+    labels: weather.daily.time || [],
+    datasets: [{
+      label: 'Precipitații (mm)',
+      data: weather.daily.precipitation_sum || [],
+      fill: true,
+      backgroundColor: 'rgba(56, 189, 248, 0.1)',
+      borderColor: '#38bdf8',
+      tension: 0.4,
+    }]
+  };
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-10 font-sans">
@@ -98,7 +118,6 @@ export default function WeatherApp() {
     </div>
     </div>
 
-    {/* CARD STAREA ACTUALA (SUS DREAPTA) */}
     <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700/50 p-6 rounded-[2.5rem] flex items-center gap-6 shadow-2xl min-w-[220px]">
     <WeatherIcon code={weather.current_weather.weathercode} className="w-16 h-16" />
     <div>
@@ -108,35 +127,35 @@ export default function WeatherApp() {
     </div>
     </header>
 
-    {/* STATISTICI RAPIDE */}
+    {/* SUMAR PRECIPITAȚII ȘI SOARE */}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div className="bg-blue-600/10 border border-blue-500/30 p-6 rounded-3xl flex flex-col justify-center items-center text-center shadow-lg">
-    <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Precipitații (10z)</p>
+    <div className="bg-blue-600/10 border border-blue-500/30 p-6 rounded-3xl flex flex-col justify-center items-center text-center">
+    <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">Total Precipitații (10z)</p>
     <p className="text-4xl font-black text-white leading-tight">{totalMm} <span className="text-sm font-normal text-blue-300">mm</span></p>
     </div>
     <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl flex items-center gap-4">
     <Sunrise className="text-orange-500 w-6 h-6" />
     <div>
     <p className="text-slate-500 text-[10px] uppercase font-bold italic">Răsărit</p>
-    <p className="text-xl font-semibold text-white">{weather?.daily?.sunrise?.[0]?.split('T')[1]}</p>
+    <p className="text-xl font-semibold text-white">{weather.daily.sunrise[0].split('T')[1]}</p>
     </div>
     </div>
     <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl flex items-center gap-4">
     <Sunset className="text-purple-500 w-6 h-6" />
     <div>
     <p className="text-slate-500 text-[10px] uppercase font-bold italic">Apus</p>
-    <p className="text-xl font-semibold text-white">{weather?.daily?.sunset?.[0]?.split('T')[1]}</p>
+    <p className="text-xl font-semibold text-white">{weather.daily.sunset[0].split('T')[1]}</p>
     </div>
     </div>
     </div>
 
-    {/* PROGNOZA PE ORE */}
+    {/* EVOLUȚIE PE ORE */}
     <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl overflow-hidden shadow-xl">
     <h2 className="text-xs font-bold mb-4 flex items-center gap-2 text-slate-400 uppercase tracking-widest"><Clock className="w-4 h-4" /> Evoluție 24 ore</h2>
     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-    {weather?.hourly?.time?.slice(0, 24).map((time, i) => (
+    {weather.hourly.time.slice(0, 24).map((time, i) => (
       <div key={time} className="flex-shrink-0 bg-slate-800/30 p-4 rounded-2xl text-center min-w-[85px] border border-slate-700/50">
-      <p className="text-slate-400 text-[10px] mb-2 italic font-mono">{new Date(time).getHours()}:00</p>
+      <p className="text-slate-400 text-[10px] mb-2 font-mono italic">{new Date(time).getHours()}:00</p>
       <WeatherIcon code={weather.hourly.weather_code[i]} className="w-6 h-6 mx-auto mb-3" />
       <p className="text-xl font-bold text-white">{Math.round(weather.hourly.temperature_2m[i])}°</p>
       </div>
@@ -144,22 +163,20 @@ export default function WeatherApp() {
     </div>
     </div>
 
-    {/* LISTA 10 ZILE CU MAXIME/MINIME */}
+    {/* LISTA 10 ZILE */}
     <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
     <div className="p-4 border-b border-slate-800 bg-slate-800/20">
     <h2 className="text-xs font-bold flex items-center gap-2 text-slate-400 uppercase tracking-widest"><Calendar className="w-4 h-4" /> Prognoză 10 zile</h2>
     </div>
     <div className="divide-y divide-slate-800">
-    {weather?.daily?.time?.map((date, i) => (
+    {weather.daily.time.map((date, i) => (
       <div key={date} className="flex justify-between p-4 items-center hover:bg-slate-800/40 transition-colors">
       <div className="flex items-center gap-4 min-w-[140px]">
       <WeatherIcon code={weather.daily.weather_code[i]} className="w-6 h-6" />
       <span className="text-slate-200 font-medium text-sm capitalize">
-      {new Date(date).toLocaleDateString('ro-RO', { weekday: 'short', day: 'numeric' })}
+      {new Date(date).toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric' })}
       </span>
       </div>
-
-      {/* MAXIME SI MINIME */}
       <div className="flex items-center gap-4">
       <div className="text-right flex gap-3 mr-4 font-mono text-sm">
       <span className="text-white font-bold">{Math.round(weather.daily.temperature_2m_max[i])}°</span>
@@ -174,7 +191,7 @@ export default function WeatherApp() {
     </div>
     </div>
 
-    {/* RADAR METEO (WINDY) */}
+    {/* RADAR */}
     <section className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
     <div className="p-4 border-b border-slate-800 flex items-center gap-2 bg-slate-800/20">
     <MapIcon className="w-4 h-4 text-blue-400" />
