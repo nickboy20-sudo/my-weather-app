@@ -71,43 +71,48 @@ export default function WeatherApp() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-10">
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    {/* HEADER: LOCATIE + STAREA ACTUALA */}
     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
     <div className="space-y-4 w-full md:w-auto">
     <div className="flex items-center gap-2 text-blue-400">
-    <MapPin className="w-6 h-6" />
-    <h1 className="text-3xl font-black text-white uppercase italic">Prognoză {location.name}</h1>
+    <MapPin className="w-6 h-6 animate-pulse" />
+    <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">Prognoză {location.name}</h1>
     </div>
+
     <div className="relative">
     <input
     type="text"
     placeholder="Caută alt oraș..."
-    className="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 w-full text-white focus:border-blue-500 outline-none"
+    className="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 w-full text-white focus:border-blue-500 outline-none shadow-lg"
     value={search}
     onChange={(e) => setSearch(e.target.value)}
     />
     {suggestions.length > 0 && (
-      <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl z-50">
+      <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl z-50 shadow-2xl">
       {suggestions.map((city) => (
         <button
         key={city.id}
-        className="w-full text-left px-4 py-3 hover:bg-slate-800 text-white border-b border-slate-800 last:border-none"
+        className="w-full text-left px-4 py-4 hover:bg-slate-800 text-white border-b border-slate-800 last:border-none flex justify-between items-center"
         onClick={() => {
           setLocation({ name: city.name, lat: city.latitude, lon: city.longitude });
           setSearch("");
           setSuggestions([]);
         }}
         >
-        {city.name}, {city.country}
+        <span className="font-bold">{city.name}</span>
+        <span className="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-400 uppercase">{city.country}</span>
         </button>
       ))}
       </div>
     )}
     </div>
     </div>
-    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex items-center gap-6 shadow-2xl">
+
+    {/* CARDUL ACTUALIZAT: Acum are w-full pe mobil și md:w-[250px] pe desktop */}
+    <div className="w-full md:w-[250px] bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700/50 p-6 rounded-3xl flex items-center justify-center md:justify-start gap-6 shadow-2xl">
     <WeatherIcon code={weather.current_weather.weathercode} className="w-16 h-16" />
     <div>
-    <p className="text-slate-400 text-xs font-bold uppercase">Acum</p>
+    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Acum</p>
     <p className="text-5xl font-black text-white">{Math.round(weather.current_weather.temperature)}°</p>
     </div>
     </div>
